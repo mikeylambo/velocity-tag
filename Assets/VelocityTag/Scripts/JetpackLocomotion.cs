@@ -60,10 +60,25 @@ namespace VelocityTag
             _velocity.x = planar.x;
             _velocity.z = planar.z;
 
-            // Vertical: thrust adds up, thrust-down assists descent, gravity pulls.
-            _velocity.y += _config.verticalThrust * state.Thrust * dt;
-            _velocity.y -= _config.gravity * dt;
-            _velocity.y = Mathf.Clamp(_velocity.y, -_config.verticalMax * 2f, _config.verticalMax);
+            // Vertical, matching player.js exactly: thrust and gravity are mutually
+            // exclusive branches. While jetting, thrust accelerates with NO gravity
+            // that frame (climbs to VERTICAL_MAX); thrust-down descends at
+            // DESCEND_SPEED; gravity applies only when not thrusting. The previous
+            // port applied thrust and gravity together, which made 15 vs 16 a net
+            // -1 and grounded the jetpack entirely.
+            if (state.Thrust > 0.05f)
+            {
+                _velocity.y += _config.verticalThrust * state.Thrust * dt;
+                _velocity.y = Mathf.Min(_velocity.y, _config.verticalMax);
+            }
+            else if (state.Thrust < -0.05f)
+            {
+                _velocity.y = Mathf.Max(_velocity.y - _config.descendSpeed * dt, -_config.verticalMax);
+            }
+            else
+            {
+                _velocity.y -= _config.gravity * dt;
+            }
 
             // Integrate then clamp to floor.
             Vector3 next = transform.position + _velocity * dt;
@@ -102,7 +117,8 @@ namespace VelocityTag
         private void OnQuickDrop(QuickDropEvent _)
         {
             if (IsGrounded) return;
-            _velocity.y = -_config.dashSpeed * 1.5f;
+            // player.js: velocity.y = min(velocity.y, -QUICK_DROP_SPEED)
+            _velocity.y = Mathf.Min(_velocity.y, -_config.quickDropSpeed);
             _quickDropping = true;
         }
 

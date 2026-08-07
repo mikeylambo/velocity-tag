@@ -23,6 +23,12 @@ namespace ShooterCore
         public float verticalThrust = 15.0f;  // VERTICAL_THRUST
         public float verticalMax = 10.5f;     // VERTICAL_MAX
         public float dashSpeed = 18.0f;       // DASH_SPEED
+        // DESCEND_SPEED / QUICK_DROP_SPEED: absent from the "Time Attack 2.0
+        // Polish" config the port was built from, but required by player.js's
+        // vertical branches. Values recovered from golden_core_v02 config.js —
+        // confirm against the 2.0 Polish source when it surfaces.
+        public float descendSpeed = 8.2f;     // DESCEND_SPEED (golden_core_v02)
+        public float quickDropSpeed = 14.5f;  // QUICK_DROP_SPEED (golden_core_v02)
 
         [Header("Combat")]
         public float laserRange = 60f;        // LASER_RANGE
