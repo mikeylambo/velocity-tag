@@ -1,0 +1,55 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a5e071d218d4e476bbc8d7c3f1f0ec80, type: 3}
+  m_Name: GameConfig
+  m_EditorClassIdentifier: Assembly-CSharp::ShooterCore.GameConfig
+  arenaRadius: 25
+  arenaHeight: 18
+  roundTime: 120
+  moveSpeed: 7.5
+  airMoveSpeed: 6
+  turnSpeed: 2.2
+  gravity: 16
+  verticalThrust: 15
+  verticalMax: 10.5
+  dashSpeed: 18
+  laserRange: 60
+  playerFireCooldown: 0.75
+  camDist: 5.5
+  camHeight: 2.5
+  camSide: 0.8
+  playerMaxCharges: 3
+  targetMaxCharges: 1
+  ghostDuration: 0.75
+  rechargeTime: 2
+  launchPadCooldown: 0.5
+  syncPadCooldown: 1.5
+  countdown: 3
+  targetRespawnTime: 0.75
+  comboWindow: 3
+  maxCombo: 5
+  playerHitPenalty: 250
+  zeroIntegrityPenalty: 1000
+  minTargetRespawnDistance: 5
+  chestScore: 100
+  helmetScore: 150
+  flankScore: 250
+  airborneBonus: 50
+  launchBonus: 75
+  quickDropBonus: 75
+  launchBonusWindow: 2
+  quickDropBonusWindow: 1.5
+  medalBronze: 3000
+  medalSilver: 6000
+  medalGold: 10000
+  medalPlatinum: 14000
+  medalSRank: 18000
