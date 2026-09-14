@@ -1,0 +1,88 @@
+# Compiles the project and runs the EditMode suite on every push.
+#
+# This exists because the agent sessions working on this repo have no Unity
+# Editor: every change lands structurally verified but NOT compile-verified.
+# This workflow is what closes that gap — it is the first thing that actually
+# proves the project builds and that the scoring rules still hold.
+#
+# Setup (once): add three repository secrets under
+# Settings -> Secrets and variables -> Actions
+#   UNITY_LICENSE   contents of your .ulf licence file (Personal), or
+#                   UNITY_SERIAL for a Plus/Pro seat
+#   UNITY_EMAIL     the Unity account email
+#   UNITY_PASSWORD  the Unity account password
+# Without them the job reports that it was skipped rather than failing red on
+# every push, so the repo stays honest about what has and has not been checked.
+
+name: Unity Tests
+
+on:
+  push:
+    branches: [main, 'claude/**']
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: unity-tests-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check-licence:
+    runs-on: ubuntu-latest
+    outputs:
+      configured: ${{ steps.probe.outputs.configured }}
+    steps:
+      - id: probe
+        env:
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+          UNITY_SERIAL: ${{ secrets.UNITY_SERIAL }}
+        run: |
+          if [ -n "$UNITY_LICENSE" ] || [ -n "$UNITY_SERIAL" ]; then
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::No Unity licence secret set — compile and tests skipped. See the header of this workflow."
+          fi
+
+  test:
+    needs: check-licence
+    if: needs.check-licence.outputs.configured == 'true'
+    name: EditMode tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+
+      # The imported asset database dominates cold-run time; keep it between runs.
+      - uses: actions/cache@v4
+        with:
+          path: Library
+          key: Library-${{ hashFiles('Packages/packages-lock.json') }}-${{ hashFiles('Assets/**') }}
+          restore-keys: |
+            Library-${{ hashFiles('Packages/packages-lock.json') }}-
+            Library-
+
+      # unityVersion defaults to reading ProjectSettings/ProjectVersion.txt.
+      # If the matching editor image is not published yet, pin a nearby 6000.x
+      # here rather than editing ProjectVersion.txt.
+      - uses: game-ci/unity-test-runner@v4
+        id: tests
+        env:
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+          UNITY_SERIAL: ${{ secrets.UNITY_SERIAL }}
+        with:
+          testMode: EditMode
+          githubToken: ${{ secrets.GITHUB_TOKEN }}
+          checkName: EditMode results
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: editmode-results
+          path: ${{ steps.tests.outputs.artifactsPath }}
+          retention-days: 14

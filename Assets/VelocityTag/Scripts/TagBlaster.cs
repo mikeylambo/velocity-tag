@@ -5,9 +5,11 @@
 // the landing came within 2.0s of the drop trigger), airborne flag from
 // telemetry, and reticle ready/cooldown state broadcast for the HUD.
 //
-// Hostile fire handling (HOSTILE_FIRE_INCOMING -> proximity check -> PLAYER_HIT)
-// is intentionally left for the hostile-fire pass — the JS build sources it
-// from targets, which we're keeping as passive dummies for the first Unity build.
+// Hostile fire resolution lives here because combat.js owns it: the incoming
+// shot is a claim, and this is where it becomes a hit. The JS build never wrote
+// the shooter (nothing ever emits HOSTILE_FIRE_INCOMING), but its receiver is
+// complete and is ported exactly — avatar centre 1.0 above the foot origin,
+// hit inside 1.2, PLAYER_HIT damage 50.
 
 using UnityEngine;
 using ShooterCore;
@@ -52,6 +54,7 @@ namespace VelocityTag
             GameEventBus.On<PlayerTelemetryEvent>(OnTelemetry);
             GameEventBus.On<LaunchPadEngagedEvent>(OnLaunchPad);
             GameEventBus.On<TimeAttackStartEvent>(OnRoundStart);
+            GameEventBus.On<HostileFireEvent>(OnHostileFire);
         }
 
         private void OnDisable()
@@ -60,6 +63,7 @@ namespace VelocityTag
             GameEventBus.Off<PlayerTelemetryEvent>(OnTelemetry);
             GameEventBus.Off<LaunchPadEngagedEvent>(OnLaunchPad);
             GameEventBus.Off<TimeAttackStartEvent>(OnRoundStart);
+            GameEventBus.Off<HostileFireEvent>(OnHostileFire);
         }
 
         private void OnRoundStart(TimeAttackStartEvent _)
@@ -69,6 +73,21 @@ namespace VelocityTag
         }
 
         private void OnLaunchPad(LaunchPadEngagedEvent _) => _lastLaunchTime = Time.time;
+
+        /// combat.js: the shot is already drawn; this only decides whether it connects.
+        private void OnHostileFire(HostileFireEvent e)
+        {
+            if (_matchState == null || !_matchState.IsPlaying) return;
+
+            Vector3 avatarCentre = _playerPos + Vector3.up * _config.hostileAimCentreHeight;
+            if (Vector3.Distance(e.TargetAim, avatarCentre) >= _config.hostileHitRadius) return;
+
+            GameEventBus.Emit(new PlayerHitEvent
+            {
+                Damage = _config.hostileDamage,
+                ImpactPoint = e.TargetAim,
+            });
+        }
 
         private void OnQuickDrop(QuickDropEvent _)
         {

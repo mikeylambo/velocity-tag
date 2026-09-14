@@ -562,8 +562,15 @@ namespace VelocityTag.EditorTools
         private static void AddSceneToBuildSettings(string path)
         {
             var scenes = new List<EditorBuildSettingsScene>(EditorBuildSettings.scenes);
-            if (scenes.Exists(s => s.path == path)) return;
-            scenes.Insert(0, new EditorBuildSettingsScene(path, true));
+
+            // Drop entries whose scene asset is gone — e.g. the URP template's
+            // SampleScene — so a build cannot fail on a dangling reference.
+            scenes.RemoveAll(s => string.IsNullOrEmpty(s.path) ||
+                                  AssetDatabase.LoadAssetAtPath<SceneAsset>(s.path) == null);
+
+            if (!scenes.Exists(s => s.path == path))
+                scenes.Insert(0, new EditorBuildSettingsScene(path, true));
+
             EditorBuildSettings.scenes = scenes.ToArray();
         }
     }

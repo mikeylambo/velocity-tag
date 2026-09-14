@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <title>Jetpack Laser Tag - Quest Rescue Build</title>
+  <style>
+    html, body { margin: 0; height: 100%; overflow: hidden; background: #020308; font-family: system-ui, sans-serif; }
+    #info {
+      position: fixed; left: 14px; top: 14px; z-index: 10; color: #e9f7ff;
+      background: rgba(2,3,8,.85); border: 1px solid rgba(0,230,255,.45); border-radius: 12px;
+      padding: 14px 18px; max-width: 480px; line-height: 1.4; backdrop-filter: blur(10px);
+      box-shadow: 0 0 25px rgba(0, 230, 255, .15); pointer-events: none;
+    }
+    #info b { color:#00eaff; letter-spacing: 0.5px; }
+    #score2d {
+      position: fixed; right: 14px; top: 14px; z-index: 11; color:#00ff66; font-weight:900; font-size: 20px;
+      background: rgba(2,3,8,.75); border: 1px solid rgba(0,255,102,.25); border-radius: 10px; padding: 8px 14px;
+    }
+  </style>
+</head>
+<body>
+  <div id="info">
+    <b>JETPACK LASER TAG: QUEST RESCUE BUILD</b><br/>
+    Meta Quest: Open in Browser, press <b>Enter VR</b>.<br/>
+    <b>Left Stick</b>: Run / Strafe. <b>Right Stick X</b>: Turn. <b>A/X</b>: Jetpack Thrust.<br/>
+    <b>Trigger</b>: Shoot/Select. <b>Grip</b>: Dash. <b>B/Y</b>: Parry Shield.<br/>
+    <span style="font-size:12px; color:#9bb;">Rescue build: relative asset paths, fixed module signatures, VR button boot priority.</span>
+  </div>
+  <div id="score2d">SYSTEM STANDBY</div>
+
+  <script type="module" src="./src/main.js"></script>
+</body>
+</html>

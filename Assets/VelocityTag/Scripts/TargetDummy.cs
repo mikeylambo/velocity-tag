@@ -18,6 +18,12 @@ namespace VelocityTag
         [Header("Config")]
         [SerializeField] private GameConfig _config;
 
+        [Header("Hostile fire")]
+        [Tooltip("The port README kept dummies passive for the first build. With this " +
+                 "off, PlayerHitEvent is never emitted and the whole suit-charge system " +
+                 "— penalties, zero-integrity reset, recharge gates — is unreachable.")]
+        [SerializeField] private bool _returnsFire = true;
+
         [Header("Zone renderers")]
         [SerializeField] private Renderer _body;
         [SerializeField] private Renderer _chest;   // team visor: red 0xff245f / blue 0x00eaff
@@ -41,6 +47,7 @@ namespace VelocityTag
         private Vector3 _velocity;
         private Vector3 _spinVel;
         private float _speed;
+        private float _fireTimer;
         private TargetSpawnNetwork _spawner;
         private ArenaBounds _arena;
         private const float FlashDuration = 0.08f;
@@ -53,6 +60,11 @@ namespace VelocityTag
             _speed = 2.0f + Random.value * 1.5f;
             _velocity = new Vector3(Mathf.Cos(initialAngle), 0f, Mathf.Sin(initialAngle)) * _speed;
             Charges = _config != null ? _config.targetMaxCharges : 1;
+
+            // Stagger the first shot by spawn phase so six dummies do not volley in
+            // unison. The interval itself is untouched — only the phase is offset.
+            float interval = _config != null ? _config.hostileFireInterval : 2.5f;
+            _fireTimer = interval * (initialAngle / (Mathf.PI * 2f));
         }
 
         private void OnEnable() => GameEventBus.On<TargetHitConfirmedEvent>(OnHitConfirmed);
@@ -105,6 +117,37 @@ namespace VelocityTag
             _velocity = new Vector3(Mathf.Cos(angle), 0f, Mathf.Sin(angle)) * _speed;
         }
 
+        /// Emits the claim; TagBlaster decides whether it connects, exactly as
+        /// combat.js splits shooter from resolver.
+        private void TickHostileFire(Vector3 playerPos, float dt)
+        {
+            if (!_returnsFire || _config == null) return;
+
+            _fireTimer -= dt;
+            if (_fireTimer > 0f) return;
+            _fireTimer = _config.hostileFireInterval;
+
+            Vector3 muzzle = transform.position + Vector3.up * 1.1f;   // chest height
+            Vector3 aimCentre = playerPos + Vector3.up * _config.hostileAimCentreHeight;
+
+            float range = _config.hostileFireRange;
+            float distance = Vector3.Distance(muzzle, aimCentre);
+            if (distance > range) return;
+
+            // Scatter grows with range so distant fire reads as pressure rather
+            // than an unavoidable tax. Shots that miss still draw, and still
+            // telegraph where the dummy is.
+            float scatter = _config.hostileAimSpread * Mathf.Clamp01(distance / Mathf.Max(range, 0.01f));
+            Vector3 aim = aimCentre + Random.insideUnitSphere * scatter;
+
+            GameEventBus.Emit(new HostileFireEvent
+            {
+                Origin = muzzle,
+                TargetAim = aim,
+                Shooter = this,
+            });
+        }
+
         public void Tick(Vector3 playerPos, bool isPlaying, float dt)
         {
             float floorY = _arena != null ? _arena.GetFloorY(transform.position) : 0f;
@@ -149,6 +192,8 @@ namespace VelocityTag
                 _velocity.x *= -1f;
                 _velocity.z *= -1f;
             }
+
+            TickHostileFire(playerPos, dt);
 
             // Yaw toward travel direction (JS lerp dt*5)
             float targetYaw = Mathf.Atan2(-_velocity.x, -_velocity.z) * Mathf.Rad2Deg;

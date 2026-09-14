@@ -27,13 +27,23 @@ namespace ShooterCore
     {
         [Header("Arena")]
         public float arenaRadius = 25f;
+
+        [Header("Declared in config.js, not yet consumed")]
+        [Tooltip("ARENA_HEIGHT. No ceiling clamp exists yet; player.js has none either.")]
         public float arenaHeight = 18f;
+        [Tooltip("ROUND_TIME. Time Attack reads timeAttackDuration; this is the generic mode clock.")]
         public float roundTime = 120f;
+        [Tooltip("FIRE_COOLDOWN. The generic weapon clock; TagBlaster uses playerFireCooldown.")]
+        public float fireCooldown = 0.75f;
+        [Tooltip("RECHARGE_TIME. Depleted-suit auto-recovery buffer, not implemented.")]
+        public float rechargeTime = 2.0f;
+        [Tooltip("TARGET_RESPAWN_TIME. Dummies currently reposition straight out of the " +
+                 "ghost window, which config.js notes is the intent at 0.75.")]
+        public float targetRespawnTime = 0.75f;
 
         [Header("Time Attack")]
         public float timeAttackDuration = 120f;   // config.js TIME_ATTACK_DURATION
         public float timeAttackCountdown = 3f;    // config.js TIME_ATTACK_COUNTDOWN
-        public float targetRespawnTime = 0.75f;   // config.js TARGET_RESPAWN_TIME
 
         [Header("Movement")]
         public float moveSpeed = 7.5f;
@@ -46,7 +56,6 @@ namespace ShooterCore
 
         [Header("Combat")]
         public float laserRange = 60f;
-        public float fireCooldown = 0.75f;
         public float playerFireCooldown = 0.75f;
 
         [Header("Camera Rig (chase/over-the-shoulder)")]
@@ -63,7 +72,27 @@ namespace ShooterCore
         public int playerMaxCharges = 3;
         public int targetMaxCharges = 1;
         public float ghostDuration = 0.75f;
-        public float rechargeTime = 2.0f;
+
+        [Header("Hostile Fire")]
+        [Tooltip("combat.js: a shot landing within this of the avatar centre is a hit.")]
+        public float hostileHitRadius = 1.2f;
+        [Tooltip("combat.js: the avatar centre is sampled 1.0 above the foot origin.")]
+        public float hostileAimCentreHeight = 1.0f;
+        [Tooltip("combat.js: PLAYER_HIT damage payload.")]
+        public int hostileDamage = 50;
+        [Tooltip("Furthest a dummy will engage from. No source value — see hostileFireInterval.")]
+        public float hostileFireRange = 40f;
+
+        [Tooltip("NOT SOURCED FROM config.js. The JS build listens for " +
+                 "HOSTILE_FIRE_INCOMING but never emits it, so no shooter was ever " +
+                 "written and no cadence exists. Seeded from the hand-off's sport-slice " +
+                 "ENEMY_FIRE_RATE (2.5s), which that document flags as a prototype " +
+                 "value. Tune deliberately: the brief is pressure, not domination.")]
+        public float hostileFireInterval = 2.5f;
+
+        [Tooltip("Aim scatter in metres at max range, so fire reads as pressure " +
+                 "rather than a hitscan tax. Also unsourced.")]
+        public float hostileAimSpread = 1.5f;
 
         [Header("Scoring - Zone Base Points")]
         public int chestPoints = 100;

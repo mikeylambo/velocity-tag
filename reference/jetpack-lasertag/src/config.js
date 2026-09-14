@@ -1,0 +1,54 @@
+export const CONFIG = {
+  // Arena Dimensions
+  ARENA_RADIUS: 25,
+  ARENA_HEIGHT: 18,
+  ROUND_TIME: 120,
+
+  // Live Tunable Mechanics
+  MOVE_SPEED: 7.5,
+  AIR_MOVE_SPEED: 6.0,
+  TURN_SPEED: 2.2,
+  GRAVITY: 16.0,
+  VERTICAL_THRUST: 15.0,
+  VERTICAL_MAX: 10.5,
+  DASH_SPEED: 18.0,
+  LASER_RANGE: 60,
+  
+  // Updated Cooldowns for Time Attack Feel Pass 01
+  FIRE_COOLDOWN: 0.75,
+  PLAYER_FIRE_COOLDOWN: 0.75,
+
+  // Camera Constraints (Standard Over-the-Shoulder)
+  CAM_DIST: 5.5,
+  CAM_HEIGHT: 2.5,
+  CAM_SIDE: 0.8,
+
+  // SUIT CHARGE SYSTEM v1
+  PLAYER_MAX_CHARGES: 3,
+  TARGET_MAX_CHARGES: 1, // Strict 1-charge dummies for Time Attack
+  GHOST_DURATION: 0.75,  // Target recovery ghost window
+  RECHARGE_TIME: 2.0,    // Depleted auto-recovery buffer
+
+  // MAP ASSET MULTIPLIERS & COOLDOWNS
+  LAUNCH_PAD_COOLDOWN: 0.5,
+  SYNC_PAD_COOLDOWN: 1.5,
+
+  // SPORT-LIKE TIME ATTACK CLASSIC CONSTANTS
+  TIME_ATTACK_DURATION: 120,
+  TIME_ATTACK_COUNTDOWN: 3,
+  TARGET_RESPAWN_TIME: 0.75, // Reposition directly after ghost window concludes
+  COMBO_WINDOW: 3.0,
+  MAX_COMBO: 5,
+  PLAYER_HIT_PENALTY: 250,
+  ZERO_INTEGRITY_PENALTY: 1000,
+  MIN_TARGET_RESPAWN_DISTANCE_FROM_PLAYER: 5.0,
+
+  // MEDAL RANKING LADDER
+  TIME_ATTACK_MEDALS: {
+    BRONZE: 3000,
+    SILVER: 6000,
+    GOLD: 10000,
+    PLATINUM: 14000,
+    S_RANK: 18000
+  }
+};

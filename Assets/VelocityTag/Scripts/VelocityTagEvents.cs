@@ -44,6 +44,15 @@ namespace VelocityTag
         public Vector3 ImpactPoint;
     }
 
+    /// combat.js HOSTILE_FIRE_INCOMING. Carries the shot so the resolver can do
+    /// the proximity test and the FX layer can draw the same beam.
+    public struct HostileFireEvent
+    {
+        public Vector3 Origin;
+        public Vector3 TargetAim;
+        public TargetDummy Shooter;
+    }
+
     public struct SuitSyncTickEvent { }   // recharge gate pulse
     public struct ComboDroppedEvent { }
     public struct TimeAttackStartEvent { }
