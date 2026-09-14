@@ -39,6 +39,13 @@ namespace VelocityTag
 
         public bool IsReady => _cooldown <= 0f && _matchState != null && _matchState.IsPlaying;
 
+        /// camera.js getAimRay() prefers the right controller and falls back to the
+        /// camera. CameraModeSwitch makes that choice once, on device connect.
+        public void SetAimOrigin(Transform origin)
+        {
+            if (origin != null) _aimOrigin = origin;
+        }
+
         private void OnEnable()
         {
             GameEventBus.On<QuickDropEvent>(OnQuickDrop);

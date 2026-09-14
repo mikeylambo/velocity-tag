@@ -107,7 +107,8 @@ namespace VelocityTag.EditorTools
             Debug.Log($"[Velocity Tag] Rebuilt {ScenePath}.\n" +
                       $"Arena radius {config.arenaRadius}, {Platforms.Length} platforms, " +
                       $"{LaunchPads.Length} launch pads (power 22), {TargetSpawns.Length} target spawns.\n" +
-                      "XR rig is present but DISABLED — see the note in the scene's 'Player/XR Rig' object.");
+                      "Camera rig is third-person in both modes; CameraModeSwitch swaps " +
+                      "camera and aim origin when a headset connects.");
 
             Selection.activeObject = match;
         }
@@ -239,47 +240,63 @@ namespace VelocityTag.EditorTools
             SetField(locomotion, "_arena", arena);
             SetField(locomotion, "_matchState", state);
 
-            // --- Desktop chase camera (active) ---
+            // --- Camera rig ---
+            // A SCENE ROOT, not a child of Player. camera.js adds `this.rig` to the
+            // scene and moves it in world space each frame; parenting it under the
+            // avatar would compose the avatar's own transform on top of that.
+            // Both cameras hang off this one rig, exactly as the JS build nests its
+            // camera and controllers under the same group.
+            var rigRoot = new GameObject("CameraRig");
+            rigRoot.transform.position = PlayerSpawn;
+
+            var rig = rigRoot.AddComponent<ShooterCore.CameraRig.ChaseCameraRig>();
+            SetField(rig, "_config", config);
+            SetField(rig, "_target", player.transform);
+
+            // One listener for the whole rig, so swapping cameras cannot leave the
+            // scene with zero or two of them.
+            rigRoot.AddComponent<AudioListener>();
+
             var chase = new GameObject("ChaseCamera");
-            chase.transform.SetParent(player.transform, false);
+            chase.transform.SetParent(rigRoot.transform, false);
             var chaseCam = chase.AddComponent<Camera>();
             chaseCam.fieldOfView = 75f;          // camera.js PerspectiveCamera(75, ...)
             chaseCam.nearClipPlane = 0.05f;
-            chase.AddComponent<AudioListener>();
-            var rig = chase.AddComponent<ShooterCore.CameraRig.ChaseCameraRig>();
-            SetField(rig, "_config", config);
-            SetField(rig, "_target", player.transform);
             SetField(rig, "_camera", chaseCam);
 
-            // --- XR rig (present, wired, DISABLED) ---
-            // Left inactive on purpose: enabling it puts a second camera and a
-            // head-driven pose in the same scene as ChaseCameraRig, which is a
-            // camera-authority decision, not a wiring one. See the report.
-            var xrRig = new GameObject("XR Rig (disabled - see notes)");
-            xrRig.transform.SetParent(player.transform, false);
+            // --- XR subtree: headset drives LOCAL pose under the rig ---
+            var xrRoot = new GameObject("XR");
+            xrRoot.transform.SetParent(rigRoot.transform, false);
 
-            var head = new GameObject("Camera Offset / Head");
-            head.transform.SetParent(xrRig.transform, false);
+            var head = new GameObject("Head");
+            head.transform.SetParent(xrRoot.transform, false);
             var xrCam = head.AddComponent<Camera>();
             xrCam.fieldOfView = 75f;
             xrCam.nearClipPlane = 0.05f;
-            var headPose = head.AddComponent<XRNodePoseDriver>();
-            SetField(headPose, "_node", (int)UnityEngine.XR.XRNode.Head);
+            SetField(head.AddComponent<XRNodePoseDriver>(), "_node", (int)UnityEngine.XR.XRNode.Head);
 
             var leftHand = new GameObject("LeftHand Controller");
-            leftHand.transform.SetParent(xrRig.transform, false);
+            leftHand.transform.SetParent(xrRoot.transform, false);
             SetField(leftHand.AddComponent<XRNodePoseDriver>(), "_node", (int)UnityEngine.XR.XRNode.LeftHand);
 
             var rightHand = new GameObject("RightHand Controller");
-            rightHand.transform.SetParent(xrRig.transform, false);
+            rightHand.transform.SetParent(xrRoot.transform, false);
             SetField(rightHand.AddComponent<XRNodePoseDriver>(), "_node", (int)UnityEngine.XR.XRNode.RightHand);
 
-            xrRig.SetActive(false);
+            // CameraModeSwitch picks the live camera at runtime and starts on
+            // desktop, so the scene is playable in the Editor with no headset.
+            xrRoot.SetActive(false);
 
-            // Aim origin: the chase camera while the XR rig is off. Repoint this
-            // at RightHand Controller when you switch the scene to VR.
+            var modeSwitch = rigRoot.AddComponent<CameraModeSwitch>();
+            SetField(modeSwitch, "_rig", rig);
+            SetField(modeSwitch, "_blaster", blaster);
+            SetField(modeSwitch, "_desktopCamera", chase);
+            SetField(modeSwitch, "_desktopAimOrigin", chase.transform);
+            SetField(modeSwitch, "_xrRoot", xrRoot);
+            SetField(modeSwitch, "_xrAimOrigin", rightHand.transform);
+
             SetField(blaster, "_config", config);
-            SetField(blaster, "_aimOrigin", chase.transform);
+            SetField(blaster, "_aimOrigin", chase.transform);   // switched on headset connect
             SetField(blaster, "_matchState", state);
             SetField(blaster, "_targetZoneMask", 1 << zoneLayer);
 

@@ -24,6 +24,13 @@ namespace ShooterCore.CameraRig
         [SerializeField] private Transform _target;      // the avatar/ship transform
         [SerializeField] private Camera _camera;
 
+        [Tooltip("Apply camPitchOffset to the rig. MUST be off in VR: the rig is the " +
+                 "XR Origin, so pitching it tilts the player's whole world.")]
+        [SerializeField] private bool _applyPitchOffset = true;
+
+        /// Set false when this rig is acting as the XR Origin.
+        public bool ApplyPitchOffset { get => _applyPitchOffset; set => _applyPitchOffset = value; }
+
         private void LateUpdate()
         {
             if (_target == null) return;
@@ -51,7 +58,11 @@ namespace ShooterCore.CameraRig
             // Unity's default Euler application order differs, so don't assume
             // this is a no-op port; verify pitch/yaw don't cross-couple on your
             // avatar's actual rotation convention before trusting it in VR.
-            float pitchDeg = _config.camPitchOffset * Mathf.Rad2Deg;
+            // In VR the pitch term is dropped, not the fix: yaw still comes from the
+            // player's known facing angle rather than LookAt(). camera.js applies
+            // -0.15 unconditionally, which is a comfort hazard on a headset — the one
+            // place this port deliberately diverges from the JS build's behaviour.
+            float pitchDeg = _applyPitchOffset ? _config.camPitchOffset * Mathf.Rad2Deg : 0f;
             transform.rotation = Quaternion.Euler(pitchDeg, facingAngleRad * Mathf.Rad2Deg, 0);
         }
     }
