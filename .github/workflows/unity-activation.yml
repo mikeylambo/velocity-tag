@@ -1,0 +1,42 @@
+# One-time helper: produces the activation file Unity needs to issue a licence
+# for CI. Run it manually, then follow the steps in the job summary.
+#
+# You only ever need this once (and again if the licence expires or you change
+# Unity account). It is separate from unity-tests.yml so it never runs on push.
+
+name: Unity Activation (run once)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  activation:
+    name: Request activation file
+    runs-on: ubuntu-latest
+    steps:
+      - name: Request .alf
+        id: request
+        uses: game-ci/unity-request-activation-file@v2
+
+      - name: Upload .alf
+        uses: actions/upload-artifact@v4
+        with:
+          name: unity-activation-file
+          path: ${{ steps.request.outputs.filePath }}
+          retention-days: 1
+
+      - name: What to do next
+        run: |
+          {
+            echo "## Next steps"
+            echo ""
+            echo "1. Download the **unity-activation-file** artifact from this run and unzip it — you get a \`.alf\`."
+            echo "2. Go to <https://license.unity3d.com/manual>, sign in, upload that \`.alf\`."
+            echo "3. Pick **Unity Personal** (or your licence type) and download the \`.ulf\` it gives back."
+            echo "4. Open the \`.ulf\` in a text editor and copy **everything** — it is XML, starting with \`<?xml\`."
+            echo "5. Repo → Settings → Secrets and variables → Actions → **New repository secret**."
+            echo "   Name it \`UNITY_LICENSE\` and paste the whole file as the value."
+            echo "6. Add \`UNITY_EMAIL\` and \`UNITY_PASSWORD\` the same way, using your Unity account."
+            echo ""
+            echo "Then run **Unity Tests** and it will stop reporting a skip."
+          } >> "$GITHUB_STEP_SUMMARY"
