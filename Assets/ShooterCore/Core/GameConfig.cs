@@ -30,6 +30,11 @@ namespace ShooterCore
         public float arenaHeight = 18f;
         public float roundTime = 120f;
 
+        [Header("Time Attack")]
+        public float timeAttackDuration = 120f;   // config.js TIME_ATTACK_DURATION
+        public float timeAttackCountdown = 3f;    // config.js TIME_ATTACK_COUNTDOWN
+        public float targetRespawnTime = 0.75f;   // config.js TARGET_RESPAWN_TIME
+
         [Header("Movement")]
         public float moveSpeed = 7.5f;
         public float airMoveSpeed = 6.0f;
@@ -50,11 +55,32 @@ namespace ShooterCore
         public float camSide = 0.8f;
         public float camPitchOffset = -0.15f;
 
+        [Header("Map Asset Cooldowns")]
+        public float launchPadCooldown = 0.5f;    // config.js LAUNCH_PAD_COOLDOWN
+        public float syncPadCooldown = 1.5f;      // config.js SYNC_PAD_COOLDOWN
+
         [Header("Suit / Health Charges")]
         public int playerMaxCharges = 3;
         public int targetMaxCharges = 1;
         public float ghostDuration = 0.75f;
         public float rechargeTime = 2.0f;
+
+        [Header("Scoring - Zone Base Points")]
+        public int chestPoints = 100;
+        public int helmetPoints = 150;
+        public int flankPackPoints = 250;
+
+        [Header("Scoring - Route Bonuses")]
+        public int airborneBonus = 50;
+        public int launchBonus = 75;
+        public int quickDropBonus = 75;
+
+        [Tooltip("Seconds after a launch pad in which a tag still counts as a launch tag.")]
+        public float launchBonusWindow = 2.0f;
+        [Tooltip("Quick drop must reach the ground within this long to arm the bonus.")]
+        public float quickDropLandGrace = 2.0f;
+        [Tooltip("Seconds after that landing in which a tag counts as a quick-drop tag.")]
+        public float quickDropBonusWindow = 1.5f;
 
         [Header("Scoring")]
         public float comboWindow = 3.0f;

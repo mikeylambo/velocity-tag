@@ -33,9 +33,9 @@ namespace VelocityTag
         private float _lastQuickDropLandTime = -999f;
         private bool _wasAirborneLastFrame;
 
-        private const float LaunchBonusWindow = 2.0f;
-        private const float QuickDropLandGrace = 2.0f;   // land within 2s of triggering drop
-        private const float QuickDropBonusWindow = 1.5f; // then 1.5s to convert the tag
+        private float LaunchBonusWindow => _config.launchBonusWindow;
+        private float QuickDropLandGrace => _config.quickDropLandGrace;     // land within 2s of the drop
+        private float QuickDropBonusWindow => _config.quickDropBonusWindow; // then 1.5s to convert the tag
 
         public bool IsReady => _cooldown <= 0f && _matchState != null && _matchState.IsPlaying;
 

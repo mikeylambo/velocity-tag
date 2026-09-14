@@ -112,8 +112,11 @@ namespace VelocityTag
             var s = _input.State;
 
             // --- Turn (JS: facingAngle -= turn * TURN_SPEED * dt) ---
-            if (Mathf.Abs(s.Look.x) > 0.05f)
-                FacingAngle += s.Look.x * _config.turnSpeed * dt;   // sign flip: Unity yaw is CW-positive
+            // Reads the dedicated Turn axis. The port previously read Look.x,
+            // which carries mouse PITCH on desktop and is never written at all
+            // by the XR path — so the avatar could not turn in VR.
+            if (Mathf.Abs(s.Turn) > 0.05f)
+                FacingAngle += s.Turn * _config.turnSpeed * dt;   // sign flip: Unity forward is +Z
             transform.rotation = Quaternion.AngleAxis(FacingAngle * Mathf.Rad2Deg, Vector3.up);
 
             Vector3 forward = FacingForward();

@@ -16,7 +16,6 @@ namespace VelocityTag
     {
         [SerializeField] private GameConfig _config;
         [SerializeField] private MatchStateMachine _matchState;
-        [SerializeField] private float _countdownDuration = 3f;   // TIME_ATTACK_COUNTDOWN
 
         private const string BestScoreKey = "JLT_TIME_ATTACK_CLASSIC_BEST";
 
@@ -78,7 +77,7 @@ namespace VelocityTag
             HelmetTags = FlankTags = AirTags = LaunchTags = QuickDropTags = 0;
             _comboTimer = 0f;
             SuitCharges = _config.playerMaxCharges;
-            Timer = _countdownDuration;
+            Timer = _config.timeAttackCountdown;
 
             _matchState.SetPhase(MatchPhase.Countdown);
             GameEventBus.Emit(new TimeAttackStartEvent());
@@ -134,14 +133,32 @@ namespace VelocityTag
             string breakdown;
             switch (e.Zone)
             {
-                case TagType.Helmet:    basePoints = 150; HelmetTags++; breakdown = "HELMET +150"; break;
-                case TagType.FlankPack: basePoints = 250; FlankTags++;  breakdown = "FLANK +250";  break;
-                default:                basePoints = 100;               breakdown = "CHEST +100";  break;
+                case TagType.Helmet:
+                    basePoints = _config.helmetPoints;    HelmetTags++;
+                    breakdown = $"HELMET +{_config.helmetPoints}";    break;
+                case TagType.FlankPack:
+                    basePoints = _config.flankPackPoints; FlankTags++;
+                    breakdown = $"FLANK +{_config.flankPackPoints}";  break;
+                default:
+                    basePoints = _config.chestPoints;
+                    breakdown = $"CHEST +{_config.chestPoints}";      break;
             }
 
-            if (e.IsAirborne)      { basePoints += 50; AirTags++;       breakdown += " | AIR +50"; }
-            if (e.IsLaunchBonus)   { basePoints += 75; LaunchTags++;    breakdown += " | LAUNCH +75"; }
-            if (e.IsQuickDropBonus){ basePoints += 75; QuickDropTags++; breakdown += " | QUICK DROP +75"; }
+            if (e.IsAirborne)
+            {
+                basePoints += _config.airborneBonus; AirTags++;
+                breakdown += $" | AIR +{_config.airborneBonus}";
+            }
+            if (e.IsLaunchBonus)
+            {
+                basePoints += _config.launchBonus; LaunchTags++;
+                breakdown += $" | LAUNCH +{_config.launchBonus}";
+            }
+            if (e.IsQuickDropBonus)
+            {
+                basePoints += _config.quickDropBonus; QuickDropTags++;
+                breakdown += $" | QUICK DROP +{_config.quickDropBonus}";
+            }
 
             Combo = Mathf.Clamp(Combo + 1, 1, _config.maxCombo);
             _comboTimer = _config.comboWindow;
@@ -174,7 +191,7 @@ namespace VelocityTag
                 Timer -= dt;
                 if (Timer <= 0f)
                 {
-                    Timer = _config.roundTime;   // TIME_ATTACK_DURATION
+                    Timer = _config.timeAttackDuration;
                     _matchState.SetPhase(MatchPhase.Playing);
                 }
             }

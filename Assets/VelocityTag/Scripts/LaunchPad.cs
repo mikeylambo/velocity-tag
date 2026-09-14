@@ -11,13 +11,18 @@ namespace VelocityTag
     [RequireComponent(typeof(Collider))]
     public class LaunchPad : MonoBehaviour
     {
-        [SerializeField] private float _launchVelocity = 14f;
-        [SerializeField] private float _cooldown = 0.5f;   // LAUNCH_PAD_COOLDOWN
+        [SerializeField] private GameConfig _config;
+
+        [Tooltip("Per-pad ejection velocity. Training Cylinder pads are all power 22.")]
+        [SerializeField] private float _launchVelocity = 22f;   // maps/trainingCylinder.js pad.power
+
         private float _lastFire = -999f;
+
+        private float Cooldown => _config != null ? _config.launchPadCooldown : 0.5f;
 
         private void OnTriggerEnter(Collider other)
         {
-            if (Time.time - _lastFire < _cooldown) return;
+            if (Time.time - _lastFire < Cooldown) return;
             var loco = other.GetComponentInParent<JetpackLocomotion>();
             if (loco == null) return;
             _lastFire = Time.time;
