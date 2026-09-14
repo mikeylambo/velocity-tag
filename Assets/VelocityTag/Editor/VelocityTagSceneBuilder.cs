@@ -67,12 +67,21 @@ namespace VelocityTag.EditorTools
             new Vector3(-12f,  8.2f,   4f), new Vector3( 12f,  8.2f,  4f), new Vector3( 0f, 12.2f,  8f),
         };
 
-        // Target zone box sizes, per the port's README (JS dummy proportions).
+        // Target zone boxes, transcribed from src/targets.js init(). Sizes AND
+        // local positions both come from there — the port README describes the
+        // head zone as sitting on "top", but targets.js puts it at y 1.6 / z -0.18,
+        // i.e. a visor on the front of the head. Getting these wrong silently
+        // changes which zone a shot scores.
         // Front of the dummy is -Z, matching TargetDummy's yaw convention.
         private static readonly Vector3 BodySize  = new Vector3(0.55f, 0.75f, 0.35f);
         private static readonly Vector3 ChestSize = new Vector3(0.45f, 0.30f, 0.10f);
         private static readonly Vector3 HeadSize  = new Vector3(0.35f, 0.10f, 0.10f);
         private static readonly Vector3 BackSize  = new Vector3(0.30f, 0.40f, 0.12f);
+
+        private static readonly Vector3 BodyPos  = new Vector3(0f, 1.0f,  0f);
+        private static readonly Vector3 ChestPos = new Vector3(0f, 1.1f, -0.18f);
+        private static readonly Vector3 HeadPos  = new Vector3(0f, 1.6f, -0.18f);
+        private static readonly Vector3 BackPos  = new Vector3(0f, 1.1f,  0.20f);
 
         [MenuItem("Tools/Velocity Tag/Rebuild Time Attack Scene")]
         public static void Rebuild()
@@ -344,10 +353,10 @@ namespace VelocityTag.EditorTools
             var root = new GameObject("TargetDummy");
             var dummy = root.AddComponent<TargetDummy>();
 
-            var body  = AddZoneBox(root, "Body",  BodySize,  new Vector3(0f,  0f,     0f),    mats.Body,  zoneLayer, null);
-            var chest = AddZoneBox(root, "Chest", ChestSize, new Vector3(0f,  0.10f, -0.225f), mats.Chest, zoneLayer, TagType.Chest);
-            var head  = AddZoneBox(root, "Head",  HeadSize,  new Vector3(0f,  0.425f, 0f),    mats.Head,  zoneLayer, TagType.Helmet);
-            var back  = AddZoneBox(root, "Back",  BackSize,  new Vector3(0f,  0.05f,  0.235f), mats.Back,  zoneLayer, TagType.FlankPack);
+            var body  = AddZoneBox(root, "Body",  BodySize,  BodyPos,  mats.Body,  zoneLayer, null);
+            var chest = AddZoneBox(root, "Chest", ChestSize, ChestPos, mats.Chest, zoneLayer, TagType.Chest);
+            var head  = AddZoneBox(root, "Head",  HeadSize,  HeadPos,  mats.Head,  zoneLayer, TagType.Helmet);
+            var back  = AddZoneBox(root, "Back",  BackSize,  BackPos,  mats.Back,  zoneLayer, TagType.FlankPack);
 
             SetField(dummy, "_config", config);
             SetField(dummy, "_body",  body.GetComponent<Renderer>());
