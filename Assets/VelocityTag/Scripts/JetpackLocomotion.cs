@@ -92,10 +92,11 @@ namespace VelocityTag
                 _velocity.y = -_config.dashSpeed * 1.5f;
         }
 
-        /// Called by LaunchPad triggers — hard vertical velocity set, like the JS pads.
+        /// Called by LaunchPad. arena.js assigns `playerAvatar.velocity.y = pad.power`
+        /// outright — not a max — so a fast descent is cancelled by the pad, not kept.
         public void ApplyLaunch(float upwardVelocity)
         {
-            _velocity.y = Mathf.Max(_velocity.y, upwardVelocity);
+            _velocity.y = upwardVelocity;
         }
 
         private Vector3 FacingForward() =>
@@ -178,7 +179,12 @@ namespace VelocityTag
                 transform.position = new Vector3(planar.x, transform.position.y, planar.y);
             }
 
-            if (_arena != null) _arena.ResolveCollisions(transform, 0.4f);
+            if (_arena != null)
+            {
+                Vector3 resolved = transform.position;
+                _arena.ResolveCollisions(ref resolved, ref _velocity, 0.4f);
+                transform.position = resolved;
+            }
 
             GameEventBus.Emit(new PlayerTelemetryEvent
             {

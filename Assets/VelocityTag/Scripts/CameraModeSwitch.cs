@@ -31,9 +31,18 @@ namespace VelocityTag
         [SerializeField] private GameObject _desktopCamera;
         [SerializeField] private Transform _desktopAimOrigin;
 
+        [SerializeField] private Camera _desktopCameraComponent;
+
         [Header("XR")]
         [SerializeField] private GameObject _xrRoot;
         [SerializeField] private Transform _xrAimOrigin;    // RightHand controller
+        [SerializeField] private Camera _xrCameraComponent;
+
+        [Header("Attached views")]
+        [SerializeField] private ReticleView _reticle;
+        [Tooltip("hud.js parents the panel to the camera itself, so it rides the head in VR.")]
+        [SerializeField] private Transform _hud;
+        [SerializeField] private Vector3 _hudLocalPosition = new Vector3(0f, -0.65f, -2.5f);
 
         private bool _xrActive;
         private bool _applied;
@@ -57,8 +66,25 @@ namespace VelocityTag
             // The rig keeps its tether in both modes; only the pitch term differs.
             if (_rig != null) _rig.ApplyPitchOffset = !xr;
 
-            if (_blaster != null)
-                _blaster.SetAimOrigin(xr ? _xrAimOrigin : _desktopAimOrigin);
+            Transform aim = xr ? _xrAimOrigin : _desktopAimOrigin;
+            Camera live = xr ? _xrCameraComponent : _desktopCameraComponent;
+
+            if (_blaster != null) _blaster.SetAimOrigin(aim);
+
+            if (_reticle != null)
+            {
+                _reticle.SetAimOrigin(aim);
+                _reticle.SetBillboardTarget(live);
+            }
+
+            // hud.js does `cameraManager.camera.add(this.mesh)` — the panel is a
+            // child of the camera, not of the rig, so it stays fixed in view.
+            if (_hud != null && live != null)
+            {
+                _hud.SetParent(live.transform, false);
+                _hud.localPosition = _hudLocalPosition;
+                _hud.localRotation = Quaternion.identity;
+            }
         }
     }
 }

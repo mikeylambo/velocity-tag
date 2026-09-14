@@ -20,6 +20,7 @@ using UnityEditor.SceneManagement;
 using UnityEngine;
 using ShooterCore;
 using ShooterCore.Input;
+using TMPro;
 
 namespace VelocityTag.EditorTools
 {
@@ -104,8 +105,9 @@ namespace VelocityTag.EditorTools
 
             BuildLighting();
             var arena = BuildArena(config);
-            var match = BuildMatch(config, out var matchState);
-            BuildPlayer(config, arena, matchState, zoneLayer, out var locomotion);
+            var match = BuildMatch(config, out var matchState, out var round);
+            BuildPlayer(config, arena, matchState, round, zoneLayer, out var locomotion);
+            WirePads(locomotion);
             BuildSpawns(config, arena, prefab, locomotion, matchState);
 
             EnsureFolder("Assets/Scenes");
@@ -138,8 +140,8 @@ namespace VelocityTag.EditorTools
             var root = new GameObject("Arena");
             var bounds = root.AddComponent<ArenaBounds>();
 
-            var platformColliders = new List<Collider>();
-            var obstacleColliders = new List<Collider>();
+            var slabs = new List<ArenaBounds.PlatformSlab>();
+            var columns = new List<ArenaBounds.PillarColumn>();
 
             // Floor: a disc of radius CONFIG.ARENA_RADIUS. Unity's cylinder
             // primitive is diameter 1, height 2, hence the halved scale.
@@ -154,10 +156,16 @@ namespace VelocityTag.EditorTools
                 var p = GameObject.CreatePrimitive(PrimitiveType.Cube);
                 p.name = $"Platform_{x}_{y}_{z}";
                 p.transform.SetParent(root.transform);
-                // JS platform y is the walkable surface; GetFloorY reads bounds.max.y.
-                p.transform.localPosition = new Vector3(x, y - 0.25f, z);
-                p.transform.localScale = new Vector3(sx, 0.5f, sz);
-                platformColliders.Add(p.GetComponent<Collider>());
+                // JS slabs are 0.4 thick with the walkable surface at y.
+                p.transform.localPosition = new Vector3(x, y - 0.2f, z);
+                p.transform.localScale = new Vector3(sx, 0.4f, sz);
+
+                slabs.Add(new ArenaBounds.PlatformSlab
+                {
+                    minX = x - sx * 0.5f, maxX = x + sx * 0.5f,
+                    minZ = z - sz * 0.5f, maxZ = z + sz * 0.5f,
+                    y = y,
+                });
             }
 
             foreach (var (x, z, radius, height) in Pillars)
@@ -167,8 +175,14 @@ namespace VelocityTag.EditorTools
                 pillar.transform.SetParent(root.transform);
                 pillar.transform.localPosition = new Vector3(x, height * 0.5f, z);
                 pillar.transform.localScale = new Vector3(radius * 2f, height * 0.5f, radius * 2f);
-                obstacleColliders.Add(pillar.GetComponent<Collider>());
+
+                columns.Add(new ArenaBounds.PillarColumn { x = x, z = z, radius = radius, height = height });
             }
+
+            // Collision queries read the slab/column data above, exactly as arena.js
+            // reads mapData — never these colliders. The meshes keep them anyway so
+            // the reticle can land on world geometry, as main.js's aim ray does.
+            bounds.SetGeometry(slabs, columns);
 
             var padRoot = new GameObject("LaunchPads");
             padRoot.transform.SetParent(root.transform);
@@ -178,40 +192,49 @@ namespace VelocityTag.EditorTools
                 pad.name = $"LaunchPad_{x}_{z}";
                 pad.transform.SetParent(padRoot.transform);
                 pad.transform.localPosition = new Vector3(x, y, z);
-                // arena.js triggers the pad within hypot < 1.5 of its centre.
-                pad.transform.localScale = new Vector3(3f, 0.9f, 3f);
-                var col = pad.GetComponent<Collider>();
-                col.isTrigger = true;
+                pad.transform.localScale = new Vector3(3f, 0.05f, 3f);   // 1.5 trigger radius
 
                 var launch = pad.AddComponent<LaunchPad>();
                 SetField(launch, "_config", config);
+                SetField(launch, "_arena", bounds);
                 SetField(launch, "_launchVelocity", power);
             }
 
-            // Recharge gates are markers only: the SuitSyncTickEvent emitter is
-            // explicitly deferred in the port's README, so no component is added.
-            var gateRoot = new GameObject("RechargeGates (markers, no component yet)");
+            var gateRoot = new GameObject("RechargeGates");
             gateRoot.transform.SetParent(root.transform);
             foreach (var pos in RechargePads)
             {
-                var gate = new GameObject($"RechargeGate_{pos.x}_{pos.z}");
+                var gate = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+                gate.name = $"RechargeGate_{pos.x}_{pos.z}";
                 gate.transform.SetParent(gateRoot.transform);
                 gate.transform.localPosition = pos;
+                gate.transform.localScale = new Vector3(3.6f, 0.05f, 3.6f);   // 1.8 trigger radius
+
+                var sync = gate.AddComponent<SyncGate>();
+                SetField(sync, "_config", config);
+                SetField(sync, "_arena", bounds);
             }
 
-            SetColliderList(bounds, "_platforms", platformColliders);
-            SetColliderList(bounds, "_obstacles", obstacleColliders);
             return bounds;
         }
 
-        private static GameObject BuildMatch(GameConfig config, out MatchStateMachine state)
+        /// Pads need the player, which is built after the arena.
+        private static void WirePads(JetpackLocomotion player)
+        {
+            foreach (var pad in Object.FindObjectsByType<LaunchPad>(FindObjectsSortMode.None))
+                SetField(pad, "_player", player);
+            foreach (var gate in Object.FindObjectsByType<SyncGate>(FindObjectsSortMode.None))
+                SetField(gate, "_player", player);
+        }
+
+        private static GameObject BuildMatch(GameConfig config, out MatchStateMachine state, out TimeAttackRound round)
         {
             var go = new GameObject("Match");
             state = go.AddComponent<MatchStateMachine>();
             SetField(state, "_mode", "TIME_ATTACK");
             SetField(state, "_map", "TRAINING_CYLINDER");
 
-            var round = go.AddComponent<TimeAttackRound>();
+            round = go.AddComponent<TimeAttackRound>();
             SetField(round, "_config", config);
             SetField(round, "_matchState", state);
 
@@ -223,21 +246,15 @@ namespace VelocityTag.EditorTools
         }
 
         private static GameObject BuildPlayer(GameConfig config, ArenaBounds arena, MatchStateMachine state,
-                                              int zoneLayer, out JetpackLocomotion locomotion)
+                                              TimeAttackRound round, int zoneLayer, out JetpackLocomotion locomotion)
         {
             var player = new GameObject("Player");
             player.transform.position = PlayerSpawn;
 
-            // Kinematic body + collider so the launch pad triggers fire; the
-            // locomotion itself stays transform-driven, as in the JS build.
-            var body = player.AddComponent<Rigidbody>();
-            body.isKinematic = true;
-            body.useGravity = false;
-            var capsule = player.AddComponent<CapsuleCollider>();
-            capsule.height = 1.6f;
-            capsule.radius = 0.4f;
-            capsule.center = new Vector3(0f, 0.8f, 0f);
-
+            // No Rigidbody and no collider: the pads poll distance like arena.js, so
+            // nothing depends on trigger callbacks, and the chase camera's aim ray
+            // starts behind the avatar and must not stop on it. The 1.6m standing
+            // profile that matters for collision lives in ArenaBounds.
             locomotion = player.AddComponent<JetpackLocomotion>();
             var input = player.AddComponent<CrossPlatformInput>();
             player.AddComponent<XRInputDriver>();
@@ -296,13 +313,43 @@ namespace VelocityTag.EditorTools
             // desktop, so the scene is playable in the Editor with no headset.
             xrRoot.SetActive(false);
 
+            // --- Reticle (camera.js aimReticle) ---
+            var reticleGo = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+            reticleGo.name = "Reticle";
+            reticleGo.transform.localScale = Vector3.one * 0.2f;   // 0.1 radius, as in camera.js
+            Object.DestroyImmediate(reticleGo.GetComponent<Collider>());
+            var reticle = reticleGo.AddComponent<ReticleView>();
+            SetField(reticle, "_renderer", reticleGo.GetComponent<Renderer>());
+            SetField(reticle, "_aimMask", ~0);
+            reticleGo.GetComponent<Renderer>().sharedMaterial =
+                EnsureMaterial("Reticle", new Color32(0x00, 0xFF, 0x66, 0xFF), false);
+
+            // --- HUD (hud.js VRHUD panel) ---
+            // TextMeshPro's mesh renderer, not a Canvas: world-space text with no
+            // UI stack, which is what a head-mounted panel wants.
+            var hudGo = new GameObject("HUD", typeof(RectTransform));
+            var hudText = hudGo.AddComponent<TextMeshPro>();
+            hudText.rectTransform.sizeDelta = new Vector2(2.0f, 0.5f);   // hud.js plane size
+            hudText.alignment = TextAlignmentOptions.Center;
+            hudText.fontSize = 0.11f;
+            hudText.color = new Color32(0x00, 0xEA, 0xFF, 0xFF);
+
+            var hud = hudGo.AddComponent<RunHud>();
+            SetField(hud, "_label", hudText);
+            SetField(hud, "_round", round);
+            SetField(hud, "_matchState", state);
+
             var modeSwitch = rigRoot.AddComponent<CameraModeSwitch>();
             SetField(modeSwitch, "_rig", rig);
             SetField(modeSwitch, "_blaster", blaster);
             SetField(modeSwitch, "_desktopCamera", chase);
             SetField(modeSwitch, "_desktopAimOrigin", chase.transform);
+            SetField(modeSwitch, "_desktopCameraComponent", chaseCam);
             SetField(modeSwitch, "_xrRoot", xrRoot);
             SetField(modeSwitch, "_xrAimOrigin", rightHand.transform);
+            SetField(modeSwitch, "_xrCameraComponent", xrCam);
+            SetField(modeSwitch, "_reticle", reticle);
+            SetField(modeSwitch, "_hud", hudGo.transform);
 
             SetField(blaster, "_config", config);
             SetField(blaster, "_aimOrigin", chase.transform);   // switched on headset connect
@@ -478,16 +525,6 @@ namespace VelocityTag.EditorTools
                     Debug.LogError($"[Velocity Tag] Unsupported field type for '{field}'.");
                     return;
             }
-            so.ApplyModifiedPropertiesWithoutUndo();
-        }
-
-        private static void SetColliderList(Object target, string field, List<Collider> colliders)
-        {
-            var so = new SerializedObject(target);
-            var list = so.FindProperty(field);
-            list.arraySize = colliders.Count;
-            for (int i = 0; i < colliders.Count; i++)
-                list.GetArrayElementAtIndex(i).objectReferenceValue = colliders[i];
             so.ApplyModifiedPropertiesWithoutUndo();
         }
 

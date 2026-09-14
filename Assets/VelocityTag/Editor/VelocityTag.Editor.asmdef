@@ -1,0 +1,15 @@
+{
+    "name": "VelocityTag.Editor",
+    "rootNamespace": "VelocityTag.EditorTools",
+    "references": [
+        "VelocityTag",
+        "ShooterCore",
+        "Unity.TextMeshPro"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "allowUnsafeCode": false,
+    "autoReferenced": true,
+    "noEngineReferences": false
+}

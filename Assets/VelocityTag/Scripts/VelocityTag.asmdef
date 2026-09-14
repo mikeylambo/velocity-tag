@@ -1,0 +1,12 @@
+{
+    "name": "VelocityTag",
+    "rootNamespace": "VelocityTag",
+    "references": [
+        "ShooterCore",
+        "Unity.InputSystem",
+        "Unity.TextMeshPro"
+    ],
+    "allowUnsafeCode": false,
+    "autoReferenced": true,
+    "noEngineReferences": false
+}

@@ -182,10 +182,12 @@ namespace VelocityTag
             });
         }
 
-        private void Update()
-        {
-            float dt = Time.deltaTime;
+        private void Update() => Tick(Time.deltaTime);
 
+        /// The round clock, split out from Update so tests can step it
+        /// deterministically instead of waiting on real frames.
+        public void Tick(float dt)
+        {
             if (_matchState.Phase == MatchPhase.Countdown)
             {
                 Timer -= dt;
