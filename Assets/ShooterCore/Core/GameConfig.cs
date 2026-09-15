@@ -23,12 +23,32 @@ namespace ShooterCore
         public float verticalThrust = 15.0f;  // VERTICAL_THRUST
         public float verticalMax = 10.5f;     // VERTICAL_MAX
         public float dashSpeed = 18.0f;       // DASH_SPEED
-        // DESCEND_SPEED / QUICK_DROP_SPEED: absent from the "Time Attack 2.0
-        // Polish" config the port was built from, but required by player.js's
-        // vertical branches. Values recovered from golden_core_v02 config.js —
-        // confirm against the 2.0 Polish source when it surfaces.
+        public float playerRadius = 0.4f;     // arena.js resolveCollisions(pos, vel, 0.4)
+
+        // Dash duration/cost are hardcoded in 2.0 Polish player.js, not in its
+        // config.js. golden_core_v02 exposes them as DASH_DURATION 0.16 / DASH_COST
+        // 15; 2.0 Polish wins on value, golden core on the idea of exposing them.
+        public float dashDuration = 0.18f;    // player.js dashTimer = 0.18
+        public float dashCost = 20f;          // player.js fuel -= 20 per dash
+
+        // DESCEND_SPEED has no 2.0 Polish equivalent — that build's thrust axis is
+        // 0..1 with no down-thrust at all. Adopted from golden_core_v02 as a real
+        // addition; this is the one cross-build VALUE in the movement set.
         public float descendSpeed = 8.2f;     // DESCEND_SPEED (golden_core_v02)
-        public float quickDropSpeed = 14.5f;  // QUICK_DROP_SPEED (golden_core_v02)
+
+        // QUICK_DROP_SPEED exists in both builds with different behaviour.
+        // 2.0 Polish player.js: velocity.y = -(DASH_SPEED) * 1.5, assigned outright.
+        // golden_core_v02:      velocity.y = min(velocity.y, -QUICK_DROP_SPEED).
+        // 2.0 Polish is the target build, so 27 (= 18 * 1.5) and a hard assign.
+        public float quickDropSpeed = 27.0f;  // player.js DASH_SPEED * 1.5
+
+        [Header("Fuel (player.js; 2.0 Polish hardcodes these)")]
+        // golden_core_v02 exposes FUEL_REGEN_GROUND 34 / FUEL_REGEN_AIR 9, but
+        // 2.0 Polish player.js uses 40 / 12, and it is the target build.
+        public float fuelMax = 100f;
+        public float fuelDrainThrust = 25f;   // player.js fuel -= 25 * dt while jetting
+        public float fuelRegenGround = 40f;   // player.js regen when grounded
+        public float fuelRegenAir = 12f;      // player.js regen when airborne
 
         [Header("Combat")]
         public float laserRange = 60f;        // LASER_RANGE
