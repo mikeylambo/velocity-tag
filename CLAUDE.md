@@ -5,18 +5,40 @@ Quest 3 target, third-person, solo Time Attack. The game is a **score-chase
 movement sport**, not a generic shooter — every design call should serve a
 repeatable 120-second run the player wants to retry.
 
-## Source of truth, in order
+## Source of truth: TWO JS builds, not one
 
-1. **`reference/jetpack-lasertag/src/config.js`** — the only authority for tuned
-   gameplay values. Vendored into this repo precisely so it is always readable.
-2. **The rest of `reference/jetpack-lasertag/src/`** — the working JS build.
-   Authority for *behaviour* when config.js has no entry: `player.js` physics,
-   `combat.js` shot clock and hostile-fire resolution, `targets.js` dummy
-   geometry and ghosting, `round.js` scoring, `arena.js` collision, `input.js`
-   Quest mappings, `maps/trainingCylinder.js` arena layout.
-3. **The hand-off export** (design intent, scoring table, open issues). Where it
-   disagrees with config.js — it does, on respawn time, ghost window and fire
-   cooldown — **config.js wins**.
+`reference/` holds both. They are different tunings of the same game and must
+not be blended by accident — this has already happened once.
+
+**`reference/jetpack-lasertag/` — "Time Attack 2.0 Polish". THE TARGET.**
+The later build and the one the hand-off describes as current. It alone has the
+sport layer: zone scoring, combo, medals, suit charges, ghosting, the 0.75s shot
+clock and the 120s round. Its `config.js` is the authority for every value it
+defines. `maps/trainingCylinder.js` is its arena (4 platforms, 1 pillar, 4 pads
+at power 22, 6 spawns).
+
+**`reference/golden-core-v02/` — "Golden Core v0.2". EARLIER FOUNDATION.**
+Its own README says it "is not the final game, it is the stable foundation".
+`round.js` is 143 lines against Time Attack's 416; it has no scoring, combo,
+medals or charges at all, a 0.18s fire cooldown and a 90s round. Its arena is
+different (8 platforms, 4 pillars, pad boost 20.5, recharge radius 2.15).
+
+Rules for using them:
+
+- A value defined in **both** → Time Attack wins. They differ on almost
+  everything (ARENA_RADIUS 25 vs 24, ROUND_TIME 120 vs 90, FIRE_COOLDOWN 0.75
+  vs 0.18, TURN_SPEED 2.2 vs 2.05, GRAVITY 16.0 vs 16.2, and more).
+- A value **only** in Golden Core (DESCEND_SPEED, QUICK_DROP_SPEED, DASH_COST,
+  DASH_DURATION, FUEL_REGEN_*, PLAYER_RADIUS, CAM_LOOK_HEIGHT) → usable, but
+  label it as cross-build. Time Attack hardcodes its own values for several of
+  these in `player.js` (fuel regen 40/12, dash 0.18s cost 20, radius 0.4);
+  where it does, those win.
+- Behaviour, not just values, can differ. Quick drop is the clearest case:
+  Time Attack's `player.js` assigns `velocity.y = -(DASH_SPEED) * 1.5` (-27)
+  outright; Golden Core clamps `min(velocity.y, -QUICK_DROP_SPEED)` (-14.5).
+  Both are real. Pick deliberately and write down which build you followed.
+- **The hand-off export** is third. Where it disagrees with Time Attack's
+  config.js — respawn time, ghost window, fire cooldown — config.js wins.
 
 If a value exists in none of the three, **stop and ask**. Do not estimate,
 reconstruct, or carry a number over from a similar system. Two real bugs came
